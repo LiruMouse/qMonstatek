@@ -199,6 +199,57 @@ Item {
                 }
             }
 
+            // ── WinUSB Driver (Zadig) Instructions ──
+            Pane {
+                Layout.fillWidth: true
+                Layout.leftMargin: 24
+                Layout.rightMargin: 24
+                Material.elevation: 1
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 8
+
+                    Label {
+                        text: "Windows USB Driver Setup (First Time Only)"
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+
+                    Label {
+                        text: "Windows requires the WinUSB driver to communicate with the M1 in DFU mode. " +
+                              "If the device is not detected after entering DFU mode, install the driver using Zadig:"
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                        font.pixelSize: 12
+                        color: Material.hintTextColor
+                    }
+
+                    Label {
+                        text: "1.  Download Zadig from https://zadig.akeo.ie\n\n" +
+                              "2.  Put your M1 into DFU mode first (see steps above)\n\n" +
+                              "3.  Open Zadig \u2192 Options \u2192 List All Devices\n\n" +
+                              "4.  Select \"STM32 BOOTLOADER\" from the dropdown\n" +
+                              "     (VID: 0x0483, PID: 0xDF11)\n\n" +
+                              "5.  Set the target driver to WinUSB (should be the default)\n\n" +
+                              "6.  Click \"Install Driver\" (or \"Replace Driver\")\n\n" +
+                              "7.  Close Zadig and click Scan above \u2014 the device should now be detected"
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                        font.pixelSize: 12
+                        lineHeight: 1.2
+                    }
+
+                    Label {
+                        text: "You only need to do this once. The driver persists across reboots and reconnections."
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                        font.pixelSize: 11
+                        color: Material.hintTextColor
+                    }
+                }
+            }
+
             // ── Swap Bank ──
             Pane {
                 Layout.fillWidth: true
