@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setApplicationName("qMonstatek");
     app.setOrganizationName("Monstatek");
-    app.setApplicationVersion("1.1.0");
+    app.setApplicationVersion("1.1.2");
 
     // Open log file next to the executable
     QString logPath = QCoreApplication::applicationDirPath() + "/qmonstatek.log";
@@ -69,6 +69,8 @@ int main(int argc, char *argv[])
     // Create backend objects
     M1Device device;
     GithubChecker githubChecker;
+    GithubChecker appUpdateChecker;
+    appUpdateChecker.setRepoUrl("bedge117/qMonstatek");
     DfuFlasher dfuFlasher;
     SwdRecovery swdRecovery;
     LogModel logModel;
@@ -85,6 +87,7 @@ int main(int argc, char *argv[])
     // Expose backend to QML
     engine.rootContext()->setContextProperty("m1device", &device);
     engine.rootContext()->setContextProperty("githubChecker", &githubChecker);
+    engine.rootContext()->setContextProperty("appUpdateChecker", &appUpdateChecker);
     engine.rootContext()->setContextProperty("dfuFlasher", &dfuFlasher);
     engine.rootContext()->setContextProperty("swdRecovery", &swdRecovery);
     engine.rootContext()->setContextProperty("deviceDiscovery", device.discovery());

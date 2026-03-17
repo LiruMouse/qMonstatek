@@ -24,26 +24,42 @@ void GithubChecker::setRepoUrl(const QString &url)
     }
 }
 
-/* Parse "v0.8.0.0-C3.1" or "v0.8.0.0" into components */
+/* Parse "v0.8.0.0-C3.1", "v0.8.0.0", or "v1.1.0" into components */
 bool GithubChecker::parseVersionTag(const QString &tag,
                                     int &major, int &minor, int &build, int &rc,
                                     int &c3Rev)
 {
-    // Match: optional 'v', then 4 dot-separated numbers, optional -C3.N
-    static QRegularExpression re(
+    // Try 4-component first: v0.8.0.0 or v0.8.0.0-C3.1
+    static QRegularExpression re4(
         R"(v?(\d+)\.(\d+)\.(\d+)\.(\d+)(?:-C3\.(\d+))?)",
         QRegularExpression::CaseInsensitiveOption);
 
-    QRegularExpressionMatch m = re.match(tag);
-    if (!m.hasMatch()) return false;
+    QRegularExpressionMatch m = re4.match(tag);
+    if (m.hasMatch()) {
+        major = m.captured(1).toInt();
+        minor = m.captured(2).toInt();
+        build = m.captured(3).toInt();
+        rc    = m.captured(4).toInt();
+        c3Rev = m.captured(5).isEmpty() ? 0 : m.captured(5).toInt();
+        return true;
+    }
 
-    major = m.captured(1).toInt();
-    minor = m.captured(2).toInt();
-    build = m.captured(3).toInt();
-    rc    = m.captured(4).toInt();
-    c3Rev = m.captured(5).isEmpty() ? 0 : m.captured(5).toInt();
+    // Try 3-component semver: v1.1.0
+    static QRegularExpression re3(
+        R"(v?(\d+)\.(\d+)\.(\d+))",
+        QRegularExpression::CaseInsensitiveOption);
 
-    return true;
+    m = re3.match(tag);
+    if (m.hasMatch()) {
+        major = m.captured(1).toInt();
+        minor = m.captured(2).toInt();
+        build = m.captured(3).toInt();
+        rc    = 0;
+        c3Rev = 0;
+        return true;
+    }
+
+    return false;
 }
 
 void GithubChecker::checkForUpdates(int fwMajor, int fwMinor,

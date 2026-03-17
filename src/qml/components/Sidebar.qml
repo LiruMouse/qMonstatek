@@ -13,18 +13,18 @@ Rectangle {
     property int selectedIndex: 0
 
     readonly property var menuItems: [
-        { name: "deviceInfo",     label: "Device Info",     icon: "ℹ" },
-        { name: "screenMirror",   label: "Screen Mirror",   icon: "🖥" },
-        { name: "fileManager",    label: "File Manager",    icon: "📁" },
-        { name: "firmwareUpdate", label: "Firmware Update",  icon: "⬆" },
-        { name: "esp32Update",    label: "ESP32 Update",     icon: "📡" },
-        { name: "dfuFlash",      label: "DFU Flash",        icon: "⚡" },
-        { name: "swdRecovery",  label: "SWD Recovery",     icon: "🔧" },
-        { name: "dualBoot",      label: "Dual Boot",        icon: "🔄" },
-        { name: "debugTerminal", label: "Debug Terminal",    icon: ">" },
-        { name: "settings",      label: "Settings",         icon: "⚙" },
-        { name: "power",        label: "Power",            icon: "⏻" },
-        { name: "about",         label: "About",            icon: "?" }
+        { name: "deviceInfo",     label: "Device Info",     icon: "ℹ",  section: "" },
+        { name: "screenMirror",   label: "Screen Mirror",   icon: "🖥", section: "" },
+        { name: "fileManager",    label: "File Manager",    icon: "📁", section: "" },
+        { name: "firmwareUpdate", label: "Firmware Update",  icon: "⬆", section: "Firmware" },
+        { name: "dualBoot",      label: "Dual Boot",        icon: "🔄", section: "" },
+        { name: "esp32Update",    label: "ESP32 Update",     icon: "📡", section: "" },
+        { name: "dfuFlash",      label: "DFU Flash",        icon: "⚡", section: "Recovery" },
+        { name: "swdRecovery",  label: "SWD Recovery",     icon: "🔧", section: "" },
+        { name: "debugTerminal", label: "Debug Terminal",    icon: ">",  section: "System" },
+        { name: "settings",      label: "Settings",         icon: "⚙", section: "" },
+        { name: "power",        label: "Power",            icon: "⏻", section: "" },
+        { name: "about",         label: "About",            icon: "?",  section: "" }
     ]
 
     ColumnLayout {
@@ -45,33 +45,50 @@ Rectangle {
         // Navigation buttons
         Repeater {
             model: menuItems
-            delegate: ItemDelegate {
+            delegate: ColumnLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 40
+                spacing: 0
 
-                highlighted: sidebar.selectedIndex === index
-                text: modelData.label
-                icon.source: ""  // placeholder — use text icon for now
-
-                contentItem: RowLayout {
-                    spacing: 12
-                    Label {
-                        text: modelData.icon
-                        font.pixelSize: 16
-                        Layout.preferredWidth: 24
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                    Label {
-                        text: modelData.label
-                        font.pixelSize: 13
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                    }
+                // Section divider
+                Rectangle {
+                    visible: modelData.section.length > 0
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    Layout.topMargin: 8
+                    Layout.bottomMargin: 4
+                    Layout.leftMargin: 4
+                    Layout.rightMargin: 4
+                    color: Material.dividerColor
                 }
 
-                onClicked: {
-                    sidebar.selectedIndex = index
-                    sidebar.navigated(modelData.name)
+                ItemDelegate {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 40
+
+                    highlighted: sidebar.selectedIndex === index
+                    text: modelData.label
+                    icon.source: ""
+
+                    contentItem: RowLayout {
+                        spacing: 12
+                        Label {
+                            text: modelData.icon
+                            font.pixelSize: 16
+                            Layout.preferredWidth: 24
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                        Label {
+                            text: modelData.label
+                            font.pixelSize: 13
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    onClicked: {
+                        sidebar.selectedIndex = index
+                        sidebar.navigated(modelData.name)
+                    }
                 }
             }
         }

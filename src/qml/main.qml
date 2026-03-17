@@ -51,18 +51,18 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            DeviceInfoView     { id: deviceInfoView }
-            ScreenMirrorView   { id: screenMirrorView }
-            FileManagerView    { id: fileManagerView }
-            FirmwareUpdateView { id: fwUpdateView }
-            Esp32UpdateView    { id: espUpdateView }
-            DualBootView       { id: dualBootView }
-            DebugTerminalView  { id: debugTerminalView }
-            SettingsView       { id: settingsView }
-            PowerView          { id: powerView }
-            AboutView          { id: aboutView }
-            DfuFlashView       { id: dfuFlashView }
-            SwdRecoveryView    { id: swdRecoveryView }
+            DeviceInfoView     { id: deviceInfoView }      // 0
+            ScreenMirrorView   { id: screenMirrorView }    // 1
+            FileManagerView    { id: fileManagerView }     // 2
+            FirmwareUpdateView { id: fwUpdateView }        // 3
+            DualBootView       { id: dualBootView }        // 4
+            Esp32UpdateView    { id: espUpdateView }       // 5
+            DfuFlashView       { id: dfuFlashView }        // 6
+            SwdRecoveryView    { id: swdRecoveryView }     // 7
+            DebugTerminalView  { id: debugTerminalView }   // 8
+            SettingsView       { id: settingsView }        // 9
+            PowerView          { id: powerView }           // 10
+            AboutView          { id: aboutView }           // 11
         }
     }
 
@@ -78,14 +78,14 @@ ApplicationWindow {
             case "screenMirror":    return 1
             case "fileManager":     return 2
             case "firmwareUpdate":  return 3
-            case "esp32Update":     return 4
-            case "dualBoot":        return 5
-            case "debugTerminal":   return 6
-            case "settings":        return 7
-            case "power":           return 8
-            case "about":           return 9
-            case "dfuFlash":        return 10
-            case "swdRecovery":     return 11
+            case "dualBoot":        return 4
+            case "esp32Update":     return 5
+            case "dfuFlash":        return 6
+            case "swdRecovery":     return 7
+            case "debugTerminal":   return 8
+            case "settings":        return 9
+            case "power":           return 10
+            case "about":           return 11
             default:                return 0
         }
     }
@@ -119,9 +119,9 @@ ApplicationWindow {
 
     function refreshCurrentView() {
         var names = ["deviceInfo", "screenMirror", "fileManager",
-                     "firmwareUpdate", "esp32Update", "dualBoot",
-                     "debugTerminal", "settings", "power", "about",
-                     "dfuFlash", "swdRecovery"]
+                     "firmwareUpdate", "dualBoot", "esp32Update",
+                     "dfuFlash", "swdRecovery", "debugTerminal",
+                     "settings", "power", "about"]
         refreshView(names[contentStack.currentIndex] || "")
     }
 

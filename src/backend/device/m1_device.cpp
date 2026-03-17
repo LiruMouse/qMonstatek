@@ -687,8 +687,9 @@ void M1Device::handleDeviceInfoResp(const rpc::Frame &frame)
     m_deviceInfo.southpawMode = info->southpaw_mode;
     m_deviceInfo.c3Revision = info->c3_revision;
 
-    // Extended battery detail (only present in C3 firmware)
-    if (frame.payload.size() >= static_cast<int>(sizeof(rpc::DeviceInfoPayload))) {
+    // Extended battery detail (check offset of charge_fault + 1 = 67 bytes)
+    constexpr int EXTENDED_BATT_SIZE = offsetof(rpc::DeviceInfoPayload, charge_fault) + 1;
+    if (frame.payload.size() >= EXTENDED_BATT_SIZE) {
         m_deviceInfo.batteryVoltageMv = info->batt_voltage_mv;
         m_deviceInfo.batteryCurrentMa = info->batt_current_ma;
         m_deviceInfo.batteryTempC     = info->batt_temp_c;

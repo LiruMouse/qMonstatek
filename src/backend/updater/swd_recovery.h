@@ -62,19 +62,22 @@ private slots:
 
 private:
     void    runOpenOcd(const QString &commands, const QString &opName);
-    QString resolveOpenOcdPath();
-    QString resolveScriptsPath(const QString &ocdPath);
+    void    resolveOpenOcdPaths();
+    void    probeVersion();
     QString interfaceConfig() const;
+    bool    validateSetup(QString &error) const;
     void    setStatus(const QString &msg);
     void    appendLog(const QString &text);
 
     QProcess *m_process      = nullptr;
     QString   m_ocdPath;
     QString   m_scriptsPath;
+    QString   m_ocdVersion;
 
     bool    m_running        = false;
     int     m_progress       = 0;
     int     m_probeType      = PicoCmsisDap;
+    bool    m_pathsResolved  = false;
     QString m_statusMessage;
     QString m_outputLog;
     QString m_currentOp;

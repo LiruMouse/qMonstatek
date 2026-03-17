@@ -4,6 +4,10 @@
  * Locates OpenOCD (bundled with STM32CubeIDE or standalone), builds
  * command strings for each operation, and runs them via QProcess.
  * Output is captured and parsed for progress/status reporting.
+ *
+ * Path resolution ensures the OpenOCD binary and TCL scripts always
+ * come from the same installation to avoid version mismatches.
+ * Supports STM32CubeIDE 2.1.0, 2.1.1, and future versions.
  */
 
 #include "swd_recovery.h"
@@ -21,9 +25,7 @@ static constexpr int FLASH_BANK_SIZE = 0x100000;  // 1 MB
 SwdRecovery::SwdRecovery(QObject *parent)
     : QObject(parent)
 {
-    m_ocdPath = resolveOpenOcdPath();
-    if (!m_ocdPath.isEmpty())
-        m_scriptsPath = resolveScriptsPath(m_ocdPath);
+    resolveOpenOcdPaths();
 }
 
 SwdRecovery::~SwdRecovery()
@@ -33,102 +35,198 @@ SwdRecovery::~SwdRecovery()
 
 // ── Path resolution ──────────────────────────────────────────────
 
-QString SwdRecovery::resolveOpenOcdPath()
+/*
+ * Find the OpenOCD binary AND scripts together, ensuring they come
+ * from the same source.  Search order:
+ *   1. App-local:  <app>/openocd/bin/openocd.exe  +  <app>/openocd/scripts/
+ *   2. STM32CubeIDE (any version under C:/ST/)
+ *   3. System PATH  +  ../share/openocd/scripts/
+ */
+void SwdRecovery::resolveOpenOcdPaths()
 {
-    // 1. App-local: <app>/openocd/bin/openocd.exe
-    QString appDir = QCoreApplication::applicationDirPath();
-    QString localPath = QDir(appDir).filePath("openocd/bin/openocd.exe");
-    if (QFile::exists(localPath))
-        return localPath;
+    if (m_pathsResolved)
+        return;
+    m_pathsResolved = true;
 
-    // 2. STM32CubeIDE installations under C:/ST/
+    // ── 1. App-local bundle ────────────────────────────────────
+    QString appDir = QCoreApplication::applicationDirPath();
+    QString localBin = QDir(appDir).filePath("openocd/bin/openocd.exe");
+    if (QFile::exists(localBin)) {
+        // Check for scripts next to the binary
+        QDir localOcd(appDir + "/openocd");
+        QString localScripts = localOcd.filePath("scripts");
+        if (QDir(localScripts).exists()) {
+            m_ocdPath = localBin;
+            m_scriptsPath = localScripts;
+            probeVersion();
+            return;
+        }
+    }
+
+    // ── 2. STM32CubeIDE installations ──────────────────────────
+    // Both the binary plugin and debug/scripts plugin must come from
+    // the SAME IDE installation to avoid version mismatches.
     QDir stDir("C:/ST");
     if (stDir.exists()) {
-        // Prefer newest IDE version (reverse sort)
+        // Try newest IDE first (reverse alphabetical = highest version)
         QStringList ideEntries = stDir.entryList(
             QStringList() << "STM32CubeIDE*", QDir::Dirs, QDir::Name | QDir::Reversed);
+
         for (const QString &ideEntry : ideEntries) {
-            QDir pluginsDir(stDir.filePath(ideEntry) + "/STM32CubeIDE/plugins");
+            QString idePath = stDir.filePath(ideEntry) + "/STM32CubeIDE";
+            QDir pluginsDir(idePath + "/plugins");
             if (!pluginsDir.exists())
                 continue;
+
+            // Find the OpenOCD binary in this IDE installation
+            QString ocdBin;
             QStringList ocdPlugins = pluginsDir.entryList(
                 QStringList() << "com.st.stm32cube.ide.mcu.externaltools.openocd*",
                 QDir::Dirs);
             for (const QString &plugin : ocdPlugins) {
-                QString ocdPath = pluginsDir.filePath(plugin) + "/tools/bin/openocd.exe";
-                if (QFile::exists(ocdPath))
-                    return ocdPath;
+                QString candidate = pluginsDir.filePath(plugin) + "/tools/bin/openocd.exe";
+                if (QFile::exists(candidate)) {
+                    ocdBin = candidate;
+                    break;
+                }
             }
+            if (ocdBin.isEmpty())
+                continue;
+
+            // Find the scripts in this SAME IDE installation
+            // Layout A (older): externaltools plugin has resources/openocd/st_scripts/
+            QDir toolsDir = QFileInfo(ocdBin).absoluteDir();  // .../bin/
+            toolsDir.cdUp();  // .../tools/
+            QString scriptsA = toolsDir.filePath("resources/openocd/st_scripts");
+            if (QDir(scriptsA).exists()) {
+                m_ocdPath = ocdBin;
+                m_scriptsPath = scriptsA;
+                probeVersion();
+                return;
+            }
+
+            // Layout B (2.1+): separate debug.openocd plugin has the scripts
+            QStringList debugPlugins = pluginsDir.entryList(
+                QStringList() << "com.st.stm32cube.ide.mcu.debug.openocd*",
+                QDir::Dirs);
+            for (const QString &dp : debugPlugins) {
+                QString scriptsB = pluginsDir.filePath(dp) +
+                                   "/resources/openocd/st_scripts";
+                if (QDir(scriptsB).exists()) {
+                    m_ocdPath = ocdBin;
+                    m_scriptsPath = scriptsB;
+                    probeVersion();
+                    return;
+                }
+            }
+
+            // Binary found but no scripts in this IDE — skip, try older IDE
+            qWarning() << "SWD: Found OpenOCD binary in" << ideEntry
+                       << "but no scripts. Trying next installation.";
         }
     }
 
-    // 3. System PATH
+    // ── 3. System PATH ─────────────────────────────────────────
     QString pathOcd = QStandardPaths::findExecutable("openocd");
-    if (!pathOcd.isEmpty())
-        return pathOcd;
+    if (!pathOcd.isEmpty()) {
+        QDir binDir = QFileInfo(pathOcd).absoluteDir();
+        QDir parentDir(binDir);
+        parentDir.cdUp();
+        QString shareScripts = parentDir.filePath("share/openocd/scripts");
+        if (QDir(shareScripts).exists()) {
+            m_ocdPath = pathOcd;
+            m_scriptsPath = shareScripts;
+            probeVersion();
+            return;
+        }
+    }
 
-    return QString();
+    qWarning() << "SWD: Could not find OpenOCD binary + scripts pair.";
 }
 
-QString SwdRecovery::resolveScriptsPath(const QString &ocdPath)
+/*
+ * Run `openocd --version` to capture the version string for diagnostics.
+ * Non-blocking — runs synchronously with a short timeout since --version
+ * returns instantly.
+ */
+void SwdRecovery::probeVersion()
 {
-    QDir binDir = QFileInfo(ocdPath).absoluteDir();  // .../bin/
-
-    // STM32CubeIDE layout (older): tools/bin/ -> tools/resources/openocd/st_scripts/
-    QDir toolsDir(binDir);
-    toolsDir.cdUp();
-    QString stScripts = toolsDir.filePath("resources/openocd/st_scripts");
-    if (QDir(stScripts).exists())
-        return stScripts;
-
-    // STM32CubeIDE layout (2.1+): scripts are in a separate debug.openocd plugin
-    // Binary is in: plugins/com.st.stm32cube.ide.mcu.externaltools.openocd.*/tools/bin/
-    // Scripts are in: plugins/com.st.stm32cube.ide.mcu.debug.openocd_*/resources/openocd/st_scripts/
-    QDir pluginsDir(binDir);
-    // Navigate up: bin/ -> tools/ -> <plugin>/ -> plugins/
-    if (pluginsDir.cdUp() && pluginsDir.cdUp() && pluginsDir.cdUp()) {
-        QStringList debugPlugins = pluginsDir.entryList(
-            QStringList() << "com.st.stm32cube.ide.mcu.debug.openocd*",
-            QDir::Dirs);
-        for (const QString &dp : debugPlugins) {
-            QString dpScripts = pluginsDir.filePath(dp) +
-                                "/resources/openocd/st_scripts";
-            if (QDir(dpScripts).exists())
-                return dpScripts;
-        }
+    QProcess proc;
+    proc.setProcessChannelMode(QProcess::MergedChannels);
+    proc.start(m_ocdPath, QStringList() << "--version");
+    if (proc.waitForFinished(3000)) {
+        QString output = QString::fromUtf8(proc.readAll()).trimmed();
+        // First line is typically "Open On-Chip Debugger 0.12.0 ..." or similar
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        if (!lines.isEmpty())
+            m_ocdVersion = lines.first().trimmed();
     }
+    if (m_ocdVersion.isEmpty())
+        m_ocdVersion = "unknown";
 
-    // Standard OpenOCD layout: bin/ -> ../share/openocd/scripts/
-    QDir parentDir(binDir);
-    parentDir.cdUp();
-    QString shareScripts = parentDir.filePath("share/openocd/scripts");
-    if (QDir(shareScripts).exists())
-        return shareScripts;
-
-    // App-local layout: openocd/bin/ -> openocd/scripts/
-    QDir appOcdDir(binDir);
-    appOcdDir.cdUp();
-    QString localScripts = appOcdDir.filePath("scripts");
-    if (QDir(localScripts).exists())
-        return localScripts;
-
-    return QString();
+    qInfo() << "SWD: OpenOCD =" << m_ocdPath;
+    qInfo() << "SWD: Scripts =" << m_scriptsPath;
+    qInfo() << "SWD: Version =" << m_ocdVersion;
 }
 
 QString SwdRecovery::interfaceConfig() const
 {
     switch (m_probeType) {
-    case StLinkV2: return QStringLiteral("interface/stlink.cfg");
+    case StLinkV2: {
+        // Prefer stlink-dap.cfg (native CMSIS-DAP mode) over stlink.cfg (HLA mode).
+        // HLA mode triggers hla_swd transport which has swj_newdap/hla newtap
+        // compatibility issues with stm32h5x.cfg on some OpenOCD versions.
+        // Native DAP mode works on all ST-Link V2-1, V3, and most V2 clones.
+        if (!m_scriptsPath.isEmpty()) {
+            QString dapCfg = QDir(m_scriptsPath).filePath("interface/stlink-dap.cfg");
+            if (QFile::exists(dapCfg))
+                return QStringLiteral("interface/stlink-dap.cfg");
+        }
+        return QStringLiteral("interface/stlink.cfg");
+    }
     default:       return QStringLiteral("interface/cmsis-dap.cfg");
     }
 }
 
+/*
+ * Pre-flight check: verify that all required config files exist in the
+ * resolved scripts directory before launching OpenOCD.
+ */
+bool SwdRecovery::validateSetup(QString &error) const
+{
+    if (m_ocdPath.isEmpty() || m_scriptsPath.isEmpty()) {
+        error = "OpenOCD not found. Install STM32CubeIDE or place OpenOCD "
+                "in the openocd/ folder next to qmonstatek.exe.";
+        return false;
+    }
+
+    // Check interface config
+    QString ifacePath = QDir(m_scriptsPath).filePath(interfaceConfig());
+    if (!QFile::exists(ifacePath)) {
+        error = QString("Interface config not found: %1\n"
+                        "Scripts directory: %2\n"
+                        "Try reinstalling STM32CubeIDE or using a bundled OpenOCD.")
+                    .arg(interfaceConfig(), m_scriptsPath);
+        return false;
+    }
+
+    // Check target config
+    QString targetPath = QDir(m_scriptsPath).filePath("target/stm32h5x.cfg");
+    if (!QFile::exists(targetPath)) {
+        error = QString("Target config not found: target/stm32h5x.cfg\n"
+                        "Scripts directory: %1\n"
+                        "Your OpenOCD installation may not support STM32H5. "
+                        "STM32CubeIDE 2.1.0 or newer is required.")
+                    .arg(m_scriptsPath);
+        return false;
+    }
+
+    return true;
+}
+
 bool SwdRecovery::isOpenOcdAvailable()
 {
-    if (m_ocdPath.isEmpty())
-        m_ocdPath = resolveOpenOcdPath();
-    if (!m_ocdPath.isEmpty() && m_scriptsPath.isEmpty())
-        m_scriptsPath = resolveScriptsPath(m_ocdPath);
+    resolveOpenOcdPaths();
     return !m_ocdPath.isEmpty() && !m_scriptsPath.isEmpty();
 }
 
@@ -305,10 +403,10 @@ void SwdRecovery::readStatus()
 
 void SwdRecovery::runOpenOcd(const QString &commands, const QString &opName)
 {
-    if (!isOpenOcdAvailable()) {
-        emit operationError(
-            "OpenOCD not found. Install STM32CubeIDE or place OpenOCD "
-            "in the openocd/ folder next to qmonstatek.exe.");
+    // Pre-flight validation
+    QString setupError;
+    if (!validateSetup(setupError)) {
+        emit operationError(setupError);
         return;
     }
 
@@ -320,10 +418,14 @@ void SwdRecovery::runOpenOcd(const QString &commands, const QString &opName)
     emit progressChanged(0);
     setStatus(opName + "...");
 
+    // Diagnostic header
     appendLog("=== " + opName + " ===\n");
-    appendLog("Probe: " +
-              QString(m_probeType == StLinkV2 ? "ST-Link V2" : "Pico CMSIS-DAP") + "\n");
-    appendLog("OpenOCD: " + m_ocdPath + "\n\n");
+    appendLog("Probe:   " +
+              QString(m_probeType == StLinkV2 ? "ST-Link" : "Pico CMSIS-DAP") + "\n");
+    appendLog("OpenOCD: " + m_ocdPath + "\n");
+    appendLog("Scripts: " + m_scriptsPath + "\n");
+    appendLog("Version: " + m_ocdVersion + "\n");
+    appendLog("Config:  " + interfaceConfig() + "\n\n");
 
     m_process = new QProcess(this);
     m_process->setProcessChannelMode(QProcess::MergedChannels);
@@ -467,14 +569,24 @@ void SwdRecovery::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatu
         // Add hints for common errors
         if (m_outputLog.contains("unable to find") ||
             m_outputLog.contains("Error connecting DP")) {
-            msg += " Check that the probe is connected and the M1 is powered.";
+            msg += "\nCheck that the probe is connected and the M1 is powered.";
         }
         if (m_outputLog.contains("No CMSIS-DAP") ||
             m_outputLog.contains("no device found")) {
-            msg += " No debug probe detected. Verify USB connection.";
+            msg += "\nNo debug probe detected. Verify USB connection.";
         }
         if (m_outputLog.contains("LIBUSB_ERROR")) {
-            msg += " USB driver issue. Try reinstalling the probe driver.";
+            msg += "\nUSB driver issue. Try reinstalling the probe driver.";
+        }
+        if (m_outputLog.contains("hla newtap") ||
+            m_outputLog.contains("swj_newdap") ||
+            m_outputLog.contains("using_hla")) {
+            msg += "\nOpenOCD transport/config error. This usually means the debug probe "
+                   "is not connected or not recognized. Verify:\n"
+                   "  1. Probe is plugged into USB\n"
+                   "  2. Correct probe type is selected above\n"
+                   "  3. SWD wires: SWCLK, SWDIO, GND connected to M1\n"
+                   "  4. M1 is powered (USB-C or battery)";
         }
 
         setStatus(msg);

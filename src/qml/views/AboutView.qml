@@ -83,6 +83,91 @@ Item {
             Layout.bottomMargin: 16
         }
 
+        // Check for Updates
+        Label {
+            text: "Updates"
+            font.bold: true
+            font.pixelSize: 16
+            Layout.alignment: Qt.AlignHCenter
+        }
+
+        ColumnLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: 8
+
+            property string updateStatus: ""
+            property string updateUrl: ""
+            property string latestVersion: ""
+
+            Button {
+                id: checkBtn
+                text: appUpdateChecker.checking ? "Checking..." : "Check for Updates"
+                enabled: !appUpdateChecker.checking
+                Layout.alignment: Qt.AlignHCenter
+                onClicked: {
+                    parent.updateStatus = ""
+                    parent.updateUrl = ""
+                    parent.latestVersion = ""
+                    var parts = Qt.application.version.split(".")
+                    appUpdateChecker.checkForUpdates(
+                        parseInt(parts[0]) || 0,
+                        parseInt(parts[1]) || 0,
+                        parseInt(parts[2]) || 0,
+                        0, 0)
+                }
+            }
+
+            Label {
+                id: statusLabel
+                visible: parent.updateStatus.length > 0
+                text: parent.updateStatus
+                font.pixelSize: 12
+                color: parent.updateUrl.length > 0 ? "#4CAF50" : Material.hintTextColor
+                Layout.alignment: Qt.AlignHCenter
+                wrapMode: Text.WordWrap
+                Layout.maximumWidth: 400
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Label {
+                visible: parent.updateUrl.length > 0
+                text: "<a href=\"" + parent.updateUrl + "\" style=\"color:#2196F3;\">Download " + parent.latestVersion + "</a>"
+                font.pixelSize: 12
+                Layout.alignment: Qt.AlignHCenter
+                onLinkActivated: function(link) { Qt.openUrlExternally(link) }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    acceptedButtons: Qt.NoButton
+                }
+            }
+
+            Connections {
+                target: appUpdateChecker
+                function onReleaseFound(info) {
+                    parent.updateStatus = "New version available: " + info.version
+                    parent.updateUrl = info.htmlUrl
+                    parent.latestVersion = info.version
+                }
+                function onNoUpdateAvailable(message) {
+                    parent.updateStatus = "You're up to date (v" + Qt.application.version + ")"
+                }
+                function onCheckError(message) {
+                    parent.updateStatus = "Error: " + message
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.preferredWidth: 300
+            Layout.preferredHeight: 1
+            Layout.alignment: Qt.AlignHCenter
+            color: Material.dividerColor
+            Layout.topMargin: 16
+            Layout.bottomMargin: 16
+        }
+
         Label {
             text: "Open Source — github.com/bedge117/qMonstatek"
             font.pixelSize: 12
