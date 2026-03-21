@@ -179,7 +179,7 @@ Item {
                 visible: updateSection.latestVersion.length > 0
                          && updateSection.installerUrl.length === 0
                          && !updateSection.downloading
-                text: "<a href=\"" + updateSection.htmlUrl + "\" style=\"color:#2196F3;\">Download " + updateSection.latestVersion + " from GitHub</a>"
+                text: "<a href=\"" + fallbackLink.htmlUrl + "\" style=\"color:#2196F3;\">Download " + updateSection.latestVersion + " from GitHub</a>"
                 font.pixelSize: 12
                 Layout.alignment: Qt.AlignHCenter
                 onLinkActivated: function(link) { Qt.openUrlExternally(link) }
