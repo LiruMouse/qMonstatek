@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QFile>
 #include <QDebug>
+#include <QCoreApplication>
 #include <QRegularExpression>
 #include <QSettings>
 
@@ -190,18 +191,11 @@ void GithubChecker::onReleaseReply(QNetworkReply *reply)
     info["prerelease"]  = root["prerelease"].toBool();
     info["isNewer"]     = isNewer;
 
-    // Formatted strings for the UI
-    QString relVerStr = QString("v%1.%2.%3.%4").arg(relMajor).arg(relMinor)
-                            .arg(relBuild).arg(relRC);
-    if (relC3 > 0)
-        relVerStr += QString("-C3.%1").arg(relC3);
-    info["versionFormatted"] = relVerStr;
+    // Use the tag name directly as the display version (preserves original format)
+    info["versionFormatted"] = tagName;
 
-    QString curVerStr = QString("v%1.%2.%3.%4").arg(m_curMajor).arg(m_curMinor)
-                            .arg(m_curBuild).arg(m_curRC);
-    if (m_curC3Rev > 0)
-        curVerStr += QString("-C3.%1").arg(m_curC3Rev);
-    info["currentVersion"] = curVerStr;
+    // Build current version string from app version (e.g. "v2.1.2")
+    info["currentVersion"] = "v" + QCoreApplication::applicationVersion();
 
     // Parse assets
     QJsonArray assets;
@@ -221,7 +215,8 @@ void GithubChecker::onReleaseReply(QNetworkReply *reply)
         emit releaseFound(info);
     } else {
         QString msg = QString("You're up to date (%1). Latest release: %2")
-                          .arg(curVerStr, relVerStr);
+                          .arg(info["currentVersion"].toString(),
+                               info["versionFormatted"].toString());
         emit noUpdateAvailable(msg);
     }
 }
