@@ -187,6 +187,9 @@ QString ToolPaths::findCubeProgrammerCli()
     standalonePaths << "/opt/st/STM32CubeProgrammer/bin/" + binName;
     standalonePaths << "/usr/local/STMicroelectronics/STM32Cube/"
                        "STM32CubeProgrammer/bin/" + binName;
+    standalonePaths << QDir::homePath() + "/STMicroelectronics/STM32Cube/"
+                       "STM32CubeProgrammer/bin/" + binName;
+    standalonePaths << "/opt/stm32cubeprog/bin/" + binName;
 #endif
     for (const QString &path : standalonePaths) {
         if (QFile::exists(path))
