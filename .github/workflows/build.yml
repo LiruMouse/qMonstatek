@@ -1,0 +1,126 @@
+name: Build macOS & Linux
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.4.2'
+          target: 'desktop'
+          modules: 'qtserialport'
+
+      - name: Generate macOS icon
+        run: bash src/resources/icons/generate_icns.sh
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Deploy
+        run: |
+          mkdir -p package
+          cp -R build/src/qmonstatek.app package/
+          macdeployqt package/qmonstatek.app -qmldir=src/qml
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "qMonstatek" \
+            -srcfolder package \
+            -ov -format UDZO \
+            "qMonstatek_${GITHUB_REF_NAME}.dmg"
+
+      - name: Zip DMG
+        run: zip "qMonstatek_${GITHUB_REF_NAME}_macos.zip" "qMonstatek_${GITHUB_REF_NAME}.dmg"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: qMonstatek_*_macos.zip
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 libxkbcommon-dev libxkbcommon-x11-0
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.4.2'
+          target: 'desktop'
+          modules: 'qtserialport'
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Install
+        run: DESTDIR=AppDir cmake --install build
+
+      - name: Download linuxdeploy
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+
+      - name: Create AppImage
+        env:
+          QML_SOURCES_PATHS: src/qml
+        run: |
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --desktop-file src/resources/linux/qmonstatek.desktop \
+            --icon-file src/resources/icons/app_icon.png \
+            --plugin qt \
+            --output appimage
+          mv qMonstatek*.AppImage "qMonstatek_${GITHUB_REF_NAME}.AppImage"
+
+      - name: Zip AppImage
+        run: zip "qMonstatek_${GITHUB_REF_NAME}_linux.zip" "qMonstatek_${GITHUB_REF_NAME}.AppImage"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: qMonstatek_*_linux.zip
+
+  release:
+    needs: [build-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-appimage
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            qMonstatek_*_macos.zip
+            qMonstatek_*_linux.zip
