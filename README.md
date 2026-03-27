@@ -116,17 +116,17 @@ The executable will be generated at `build/src/qmonstatek`.
 **Linux Device Permissions:**
 To allow the application to communicate with the M1 over USB without requiring `root` or `sudo`:
 1. Ensure your user is added to the `uucp` or `dialout` group (depending on your distro):
-   \`\`\`bash
+   ```bash
    sudo usermod -aG uucp $USER
-   \`\`\`
+   ```
    *(You must log out and log back in for this to take effect).*
 
 2. **DFU Flash Helper:** Install `STM32CubeProgrammer` (e.g., `yay -S stm32cubeprog` on Arch) and ensure the `STM32_Programmer_CLI` is in your system PATH or installed to `/opt/st/STM32CubeProgrammer/bin/`. 
 3. **udev Rules:** Ensure you have the proper udev rules installed (usually `/etc/udev/rules.d/99-stm32-dfu.rules`) for `0483:df11` to allow user-space DFU flashing (These are included with `STM32CubeProgrammer` in the Drivers/rules/ directory with instructions). Additionally, you can run the following:
-   \`\`\`bash
+   ```bash
    echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE="0666"' | sudo tee /etc/udev/rules.d/99-stm32-dfu.rules
    sudo udevadm control --reload-rules && sudo udevadm trigger
-   \`\`\`
+   ```
 
 
 ## License
