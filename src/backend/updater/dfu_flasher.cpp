@@ -461,7 +461,7 @@ void DfuFlasher::onSwapBankFinished(int exitCode, QProcess::ExitStatus exitStatu
 
     if (m_useCliDirect) {
         // CLI: success if exit code 0 and option bytes programmed
-        if (exitCode == 0 && (output.contains("Option bytes successfully") ||
+        if (exitCode == 0 && (output.contains("Option bytes successfully", Qt::CaseInsensitive) ||
                               output.contains("SWAP_BANK"))) {
             success = true;
             statusMsg = "Bank swap complete! Device will reboot.";
