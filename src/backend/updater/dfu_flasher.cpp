@@ -275,7 +275,7 @@ void DfuFlasher::startFlash(const QString &binFilePath, const QString &target)
 
         args << "-c" << "port=USB1"
              << "-d" << QDir::toNativeSeparators(binFilePath) << addr
-             << "-v" << "-rst";
+             << "-v";
     } else {
         args << "flash" << QDir::toNativeSeparators(binFilePath) << target;
     }
