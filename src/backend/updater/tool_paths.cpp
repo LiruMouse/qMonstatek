@@ -182,6 +182,9 @@ QString ToolPaths::findCubeProgrammerCli()
     standalonePaths << "/Applications/STMicroelectronics/STM32Cube/"
                        "STM32CubeProgrammer/STM32CubeProgrammer.app/"
                        "Contents/MacOs/bin/" + binName;
+    standalonePaths << "/Applications/STMicroelectronics/STM32Cube/"
+                       "STM32CubeProgrammer/STM32CubeProgrammer.app/"
+                       "Contents/Resources/bin/" + binName;
     standalonePaths << "/Applications/STM32CubeProgrammer/bin/" + binName;
 #else
     standalonePaths << "/opt/st/STM32CubeProgrammer/bin/" + binName;
