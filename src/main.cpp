@@ -2,7 +2,7 @@
  * main.cpp — qMonstatek application entry point
  */
 
-#include <QApplication>
+#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     qputenv("QT_QPA_NO_NATIVE_FILE_DIALOG", "1");
 #endif
 
-    QApplication app(argc, argv);
+    QGuiApplication app(argc, argv);
     app.setApplicationName("qMonstatek");
     app.setOrganizationName("Monstatek");
     app.setApplicationVersion("2.2.3");

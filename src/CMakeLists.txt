@@ -49,7 +49,6 @@ target_link_libraries(qmonstatek PRIVATE
     Qt6::Gui
     Qt6::Quick
     Qt6::QuickControls2
-    Qt6::Widgets
 )
 
 # Platform-specific resources

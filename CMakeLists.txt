@@ -8,7 +8,7 @@ set(CMAKE_AUTORCC ON)
 
 # Qt6 modules
 find_package(Qt6 REQUIRED COMPONENTS
-    Core Gui Quick QuickControls2 SerialPort Network Widgets
+    Core Gui Quick QuickControls2 SerialPort Network
 )
 
 option(BUILD_TESTS "Build unit tests" OFF)
