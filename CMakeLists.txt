@@ -22,3 +22,9 @@ if(BUILD_TESTS)
         add_subdirectory(tests)
     endif()
 endif()
+
+# Deploy and Sign
+if(APPLE)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/deploy_mac.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/deploy_mac.cmake" @ONLY)
+    install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/deploy_mac.cmake")
+endif()

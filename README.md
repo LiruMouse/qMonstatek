@@ -147,6 +147,14 @@ make -j$(sysctl -n hw.ncpu)
 The executable will be generated at `build/src/qmonstatek.app`.
 You can run it via `open build/src/qmonstatek.app`.
 
+#### Prepare for distribution
+In order to distribute to other macs, you'll need to have qt deploy and ad-hoc codesign the package.
+To do so, run the following command (and be prepared to wait a few minutes for it to work
+```bash
+cmake --install . --prefix ./dist
+```
+The package will be generated at `build/dist/qmonstatek.app`.
+You can test run it via `open build/src/qmonstatek.app`.
 
 ## License
 
