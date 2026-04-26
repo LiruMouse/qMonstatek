@@ -128,6 +128,25 @@ To allow the application to communicate with the M1 over USB without requiring `
    sudo udevadm control --reload-rules && sudo udevadm trigger
    ```
 
+### Building from Source (macOS)
+
+#### Install Requirements
+- [Install STM32CubeProgrammer or STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeprog.html#get-software)
+```bash
+brew install qt cmake
+```
+- You'll also need a compiler like gcc or clang, you can get that from brew or from Apple.
+
+
+#### Build
+```bash
+mkdir build && cd build
+cmake ..
+make -j$(sysctl -n hw.ncpu)
+```
+The executable will be generated at `build/src/qmonstatek.app`.
+You can run it via `open build/src/qmonstatek.app`.
+
 
 ## License
 
