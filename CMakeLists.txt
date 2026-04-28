@@ -10,7 +10,10 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt6 REQUIRED COMPONENTS
     Core Gui Quick QuickControls2 SerialPort Network
 )
-qt_policy(SET QTP0004 NEW)
+
+if(QT_KNOWN_POLICY_QTP0004)
+    qt_policy(SET QTP0004 NEW)
+endif()
 
 option(BUILD_TESTS "Build unit tests" OFF)
 
