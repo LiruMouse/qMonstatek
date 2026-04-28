@@ -1,0 +1,8 @@
+set(APP_PATH "${CMAKE_INSTALL_PREFIX}/@PROJECT_NAME@.app")
+set(QML_DIR "@PROJECT_SOURCE_DIR@/src/qml")
+
+message(STATUS "Deploying: ${APP_PATH}; QMLDIR: ${QML_DIR}")
+execute_process(
+    COMMAND macdeployqt "${APP_PATH}" -qmldir=${QML_DIR} -codesign=-
+    COMMAND_ERROR_IS_FATAL ANY
+)
