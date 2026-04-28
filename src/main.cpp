@@ -58,8 +58,8 @@ int main(int argc, char *argv[])
 #endif
 
     QGuiApplication app(argc, argv);
-    app.setApplicationName("qMonstatek");
-    app.setOrganizationName("Monstatek");
+    app.setApplicationName(app_info::app_name);
+    app.setOrganizationName(app_info::org_name);
     app.setApplicationVersion(app_info::version);
 
     // Open log file in temp directory (avoids write permission issues in Program Files)

@@ -15,6 +15,8 @@ string(CONFIGURE [[
 #pragma once
 
 namespace app_info {
+    inline constexpr auto app_name = "qMonstatek";
+    inline constexpr auto org_name = "Monstatek";
     inline constexpr auto version = "@APP_VER@";
 }
 ]] APP_INFO_GEN @ONLY)
