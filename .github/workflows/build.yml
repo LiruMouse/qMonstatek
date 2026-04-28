@@ -41,14 +41,11 @@ jobs:
             -ov -format UDZO \
             "qMonstatek_${GITHUB_REF_NAME}.dmg"
 
-      - name: Zip DMG
-        run: zip "qMonstatek_${GITHUB_REF_NAME}_macos.zip" "qMonstatek_${GITHUB_REF_NAME}.dmg"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
-          path: qMonstatek_*_macos.zip
+          path: qMonstatek_*.dmg
 
   build-linux:
     runs-on: ubuntu-22.04
@@ -128,5 +125,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            qMonstatek_*_macos.zip
+            qMonstatek_*.dmg
             qMonstatek_*_linux.zip
