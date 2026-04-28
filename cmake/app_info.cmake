@@ -4,7 +4,7 @@ set(APP_VER "v0.0.0-tagless")
 find_package(Git REQUIRED)
 if(GIT_FOUND)
     execute_process(
-        COMMAND ${GIT_EXECUTABLE} describe --tags --always --dirty
+        COMMAND ${GIT_EXECUTABLE} describe --tags --always
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         OUTPUT_VARIABLE APP_VER
         OUTPUT_STRIP_TRAILING_WHITESPACE
