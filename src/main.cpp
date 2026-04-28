@@ -15,6 +15,7 @@
 #include "device/m1_device.h"
 #include "device/screen_image_provider.h"
 #include "device/log_model.h"
+#include "gen/app_info.h"
 #include "updater/github_checker.h"
 #include "updater/self_updater.h"
 #include "updater/dfu_flasher.h"
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setApplicationName("qMonstatek");
     app.setOrganizationName("Monstatek");
-    app.setApplicationVersion("2.2.3");
+    app.setApplicationVersion(app_info::version);
 
     // Open log file in temp directory (avoids write permission issues in Program Files)
     QString logPath = QDir::tempPath() + "/qmonstatek.log";

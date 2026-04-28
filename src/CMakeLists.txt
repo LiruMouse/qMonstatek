@@ -64,8 +64,8 @@ elseif(APPLE)
     endif()
     set_target_properties(qmonstatek PROPERTIES
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.monstatek.qmonstatek"
-        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${APP_VER}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${APP_VER}"
         MACOSX_BUNDLE_BUNDLE_NAME "qMonstatek")
 endif()
 

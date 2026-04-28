@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(qmonstatek VERSION 2.2.2 LANGUAGES CXX)
+project(qmonstatek LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,6 +14,7 @@ qt_policy(SET QTP0004 NEW)
 
 option(BUILD_TESTS "Build unit tests" OFF)
 
+include(cmake/app_info.cmake)
 add_subdirectory(src)
 
 if(BUILD_TESTS)

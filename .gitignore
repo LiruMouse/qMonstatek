@@ -1,5 +1,6 @@
 *build/
 deploy/
+src/gen/
 *.user
 *.log
 *.exe
