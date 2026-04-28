@@ -32,10 +32,7 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Deploy
-        run: |
-          mkdir -p package
-          cp -R build/src/qmonstatek.app package/
-          macdeployqt package/qmonstatek.app -qmldir=src/qml
+        run: cmake --install build/ --prefix package
 
       - name: Create DMG
         run: |
