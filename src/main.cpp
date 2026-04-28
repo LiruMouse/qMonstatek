@@ -80,9 +80,9 @@ int main(int argc, char *argv[])
     GithubChecker githubChecker;
     githubChecker.setPersistKey("firmware/repoUrl");
     GithubChecker appUpdateChecker;
-    appUpdateChecker.setRepoUrl("bedge117/qMonstatek");
+    appUpdateChecker.setRepoUrl(app_info::app_update_repo);
     GithubChecker esp32Checker;
-    esp32Checker.setRepoUrl("bedge117/esp32-at-monstatek-m1");
+    esp32Checker.setRepoUrl(app_info::esp32_update_repo);
     SelfUpdater selfUpdater;
     DfuFlasher dfuFlasher;
     SwdRecovery swdRecovery;

@@ -1,3 +1,5 @@
+set(APP_UPDATE_REPO "bedge117/qMonstatek" CACHE STRING "Repo for app updates")
+set(ESP32_UPDATE_REPO "bedge117/esp32-at-monstatek-m1" CACHE STRING "Repo for esp32 updates")
 set(APP_VER "v0.0.0-tagless")
 find_package(Git REQUIRED)
 if(GIT_FOUND)
@@ -18,6 +20,8 @@ namespace app_info {
     inline constexpr auto app_name = "qMonstatek";
     inline constexpr auto org_name = "Monstatek";
     inline constexpr auto version = "@APP_VER@";
+    inline constexpr auto app_update_repo = "@APP_UPDATE_REPO@";
+    inline constexpr auto esp32_update_repo = "@ESP32_UPDATE_REPO@";
 }
 ]] APP_INFO_GEN @ONLY)
 file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/src/gen/app_info.h" "${APP_INFO_GEN}")
