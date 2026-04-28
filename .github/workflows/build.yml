@@ -26,7 +26,7 @@ jobs:
         run: bash src/resources/icons/generate_icns.sh
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAPP_UPDATE_REPO=${GITHUB_REPOSITORY}
 
       - name: Build
         run: cmake --build build --parallel
@@ -75,7 +75,7 @@ jobs:
           convert qMonstatek.png -resize 256x256! -background transparent -gravity center -extent 256x256 src/resources/icons/qmonstatek.png
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAPP_UPDATE_REPO=${GITHUB_REPOSITORY} -DCMAKE_INSTALL_PREFIX=/usr
 
       - name: Build
         run: cmake --build build --parallel
