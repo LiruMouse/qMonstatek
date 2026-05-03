@@ -6,52 +6,25 @@ on:
       - 'v*'
 
 jobs:
-  build-macos:
-    runs-on: macos-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos
+            runner: macos-latest
+            package: qMonstatek_${{github.ref_name}}.dmg
+            install_prefix: "package"
+          - os: linux
+            runner: ubuntu-22.04
+            package: qMonstatek_${{github.ref_name}}_linux.zip
+            configure_flags: "-DCMAKE_INSTALL_PREFIX=/usr"
+            install_prefix: "AppDir/usr"
+    runs-on: ${{matrix.runner}}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.4.2'
-          target: 'desktop'
-          modules: 'qtserialport'
-
-      - name: Generate square icon from source
-        run: |
-          sips -z 256 256 qMonstatek.png --out src/resources/icons/app_icon.png
-
-      - name: Generate macOS icon
-        run: bash src/resources/icons/generate_icns.sh
-
-      - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAPP_UPDATE_REPO=${GITHUB_REPOSITORY}
-
-      - name: Build
-        run: cmake --build build --parallel
-
-      - name: Deploy
-        run: cmake --install build/ --prefix package
-
-      - name: Create DMG
-        uses: L-Super/create-dmg-actions@8c59360de7ec731bfa03ce3bd2ad5ae650169864
-        with:
-          dmg_name: qMonstatek_${{github.ref_name}}
-          src_dir: package/qMonstatek.app
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-dmg
-          path: qMonstatek_*.dmg
-
-  build-linux:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
+      - name: Install Linux dependencies
+        if: matrix.os == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libfuse2 libxkbcommon-dev libxkbcommon-x11-0 imagemagick libssl-dev
@@ -63,66 +36,70 @@ jobs:
           target: 'desktop'
           modules: 'qtserialport'
 
-      - name: Generate 256x256 icon from source
+      - name: Generate Linux icon from source
+        if: matrix.os == 'linux'
+        run: convert qMonstatek.png -resize 256x256! -background transparent -gravity center -extent 256x256 src/resources/icons/qmonstatek.png
+
+      - name: Generate macOS icon
+        if: matrix.os == 'macos'
         run: |
-          convert qMonstatek.png -resize 256x256! -background transparent -gravity center -extent 256x256 src/resources/icons/qmonstatek.png
+          sips -z 256 256 qMonstatek.png --out src/resources/icons/app_icon.png
+          bash src/resources/icons/generate_icns.sh
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAPP_UPDATE_REPO=${GITHUB_REPOSITORY} -DCMAKE_INSTALL_PREFIX=/usr
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAPP_UPDATE_REPO=${GITHUB_REPOSITORY} ${{matrix.configure_flags}}
 
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Install
-        run: DESTDIR=AppDir cmake --install build
+      - name: Deploy
+        run: cmake --install build/ --prefix ${{matrix.install_prefix}}
 
-      - name: Download linuxdeploy
+      - name: Create macOS package
+        if: matrix.os == 'macos'
+        uses: L-Super/create-dmg-actions@8c59360de7ec731bfa03ce3bd2ad5ae650169864
+        with:
+          dmg_name: qMonstatek_${{github.ref_name}}
+          src_dir: ${{matrix.install_prefix}}/qMonstatek.app
+
+      - name: Create Linux package
+        if: matrix.os == 'linux'
+        env:
+          QML_SOURCES_PATHS: src/qml
+          EXTRA_QT_PLUGINS: tls
+          APP_IMAGE_PATH: qMonstatek_${{github.ref_name}}.AppImage
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
-
-      - name: Create AppImage
-        env:
-          QML_SOURCES_PATHS: src/qml
-          EXTRA_QT_PLUGINS: tls
-        run: |
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
             --desktop-file src/resources/linux/qmonstatek.desktop \
             --icon-file src/resources/icons/qmonstatek.png \
             --plugin qt \
             --output appimage
-          mv qMonstatek*.AppImage "qMonstatek_${GITHUB_REF_NAME}.AppImage"
-
-      - name: Zip AppImage
-        run: zip "qMonstatek_${GITHUB_REF_NAME}_linux.zip" "qMonstatek_${GITHUB_REF_NAME}.AppImage"
+          mv qMonstatek*.AppImage ${APP_IMAGE_PATH}
+          zip "${{matrix.package}}" ${APP_IMAGE_PATH}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-appimage
-          path: qMonstatek_*_linux.zip
+          name: ${{matrix.os}}-artifact
+          path: ${{matrix.package}}
 
   release:
-    needs: [build-macos, build-linux]
+    needs: [build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download macOS artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: macos-dmg
-
-      - name: Download Linux artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-appimage
+          path: artifacts
+          merge-multiple: true
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            qMonstatek_*.dmg
-            qMonstatek_*_linux.zip
+          files: artifacts/qMonstatek_*
