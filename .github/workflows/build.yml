@@ -38,7 +38,7 @@ jobs:
 
       - name: Generate Linux icon from source
         if: matrix.os == 'linux'
-        run: convert qMonstatek.png -resize 256x256! -background transparent -gravity center -extent 256x256 src/resources/icons/qmonstatek.png
+        run: convert qMonstatek.png -resize 256x256! -alpha on -background none -gravity center -extent 256x256 src/resources/icons/qmonstatek.png
 
       - name: Generate macOS icon
         if: matrix.os == 'macos'
